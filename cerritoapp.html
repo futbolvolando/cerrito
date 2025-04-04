@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El cerrito</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f0f0;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+            background: rgb(167, 167, 167);
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+        }
+        h1 {
+            color: #333;
+            font-size: 2rem;
+        }
+        .mesas {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .mesa {
+            background: linear-gradient(185deg, #4CAF50, #2E7D32);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .mesa.ocupada {
+            background: linear-gradient(135deg, #D32F2F, #B71C1C) !important;
+        }
+        .mesa:hover {
+            background: linear-gradient(135deg, #45a049, #1B5E20);
+            transform: scale(1.1);
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            display: none;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .modal button {
+            margin: 10px;
+            padding: 30px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .modal button:hover {
+            background: #ff00002a;
+        }
+        #menu-pedidos, #menu-productos {
+            display: flex;
+            flex-direction: column;
+            align-items: first baseline;
+        }
+        #menu-pedidos button, #menu-productos button {
+            margin: 15px;
+            width: 80%;
+            padding: 10%;
+        }
+        #ticket {
+            text-align: left;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .producto {
+            margin: 30px;
+            padding: 30px;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+        .producto:hover {
+            background-color: #f1f1f1;
+        }
+        #ticket-list li {
+            list-style-type: none;
+        }
+        .ticket-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ticket-item button {
+            background-color: #ff3b3b;
+            font-size: 14px;
+            padding: 5px;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        .ticket-item button:hover {
+            background-color: #d32f2f;
+        }
+        #floating-ticket {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #fff;
+            padding: 15px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            display: none;
+            max-width: 350px;
+            width: 300px;
+            z-index: 100;
+        }
+        .ticket-content {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .ticket-close {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #333;
+        }
+        .ticket-close:hover {
+            color: #ff3b3b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>El Cerrito</h1>
+        <div class="mesas" id="mesas"></div>
+    </div>
+
+    <!-- Modal para ocupar o liberar mesa -->
+    <div id="modal" class="modal">
+        <h2 id="modal-title"></h2>
+        <button onclick="mostrarMenuPedidos()">Ocupar</button>
+        <button onclick="liberarMesa()">Liberar</button>
+        <button onclick="cerrarModal()">Volver a las mesas</button>
+    </div>
+
+    <!-- Menú para seleccionar categorías de pedido -->
+    <div id="menu-pedidos" class="modal" style="display: none;">
+        <h2>Selecciona una categoría</h2>
+        <button onclick="mostrarProductos('Raciones')">Raciones</button>
+        <button onclick="mostrarProductos('Bocadillos')">Bocadillos</button>
+        <button onclick="mostrarProductos('Bebidas')">Bebidas</button>
+        <button onclick="mostrarProductos('Comida')">Comida</button>
+        <button onclick="volverAMesas()">Volver a las mesas</button>
+    </div>
+
+    <!-- Menú de productos de la categoría seleccionada -->
+    <div id="menu-productos" class="modal" style="display: none;">
+        <h2 id="productos-title"></h2>
+        <div id="productos-list"></div>
+        <button onclick="volverACategorias()">Volver a las categorías</button>
+    </div>
+
+    <!-- Ticket flotante -->
+    <div id="floating-ticket">
+        <span class="ticket-close" onclick="cerrarTicket()">X</span>
+        <h3>Comanda</h3>
+        <div class="ticket-content">
+            <ul id="floating-ticket-list"></ul>
+        </div>
+        <button onclick="imprimirTicket()">Imprimir Ticket</button>
+    </div>
+
+    <script>
+        let mesaSeleccionada = null;
+        const productos = {
+            "Raciones": [{ nombre: "Patatas Bravas", precio: 5 }, { nombre: "Calamares", precio: 8 }, { nombre: "Ensalada", precio: 4 }],
+            "Bocadillos": [{ nombre: "Jamón", precio: 4 }, { nombre: "Queso", precio: 4 }, { nombre: "Atún", precio: 5 }],
+            "Bebidas": [{ nombre: "Cerveza", precio: 2 }, { nombre: "Refresco", precio: 2 }, { nombre: "Agua", precio: 1 }],
+            "Comida": [{ nombre: "Paella", precio: 10 }, { nombre: "Chuleta", precio: 12 }, { nombre: "Pizza", precio: 9 }]
+        };
+
+        let tickets = {};
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const mesasContainer = document.getElementById("mesas");
+            for (let i = 1; i <= 40; i++) {
+                let mesa = document.createElement("div");
+                mesa.classList.add("mesa");
+                mesa.dataset.mesa = i;
+                mesa.innerText = `Mesa ${i}`;
+                mesa.addEventListener("click", () => abrirModal(i));
+                mesasContainer.appendChild(mesa);
+            }
+        });
+
+        function abrirModal(numMesa) {
+            mesaSeleccionada = numMesa;
+            document.getElementById("modal-title").innerText = `Mesa ${numMesa}`;
+            document.getElementById("modal").style.display = "block";
+            document.getElementById("mesas").style.display = "none";
+        }
+
+        function cerrarModal() {
+            document.getElementById("modal").style.display = "none";
+            document.getElementById("mesas").style.display = "grid";
+        }
+
+        function mostrarMenuPedidos() {
+            if (!tickets[mesaSeleccionada]) {
+                tickets[mesaSeleccionada] = [];
+            }
+
+            document.querySelector(`.mesa[data-mesa='${mesaSeleccionada}']`).classList.add('ocupada');
+            document.getElementById("modal").style.display = "none";
+            document.getElementById("menu-pedidos").style.display = "block";
+        }
+
+        function liberarMesa() {
+            document.querySelector(`.mesa[data-mesa='${mesaSeleccionada}']`).classList.remove('ocupada');
+            delete tickets[mesaSeleccionada];
+            cerrarModal();
+        }
+
+        function mostrarProductos(categoria) {
+            document.getElementById("menu-pedidos").style.display = "none";
+            document.getElementById("productos-title").innerText = categoria;
+            let lista = document.getElementById("productos-list");
+            lista.innerHTML = "";
+            productos[categoria].forEach(prod => {
+                let item = document.createElement("div");
+                item.classList.add("producto");
+                item.innerText = `${prod.nombre} - ${prod.precio}€`;
+                item.onclick = function() { agregarAlTicket(prod); };
+                lista.appendChild(item);
+            });
+            document.getElementById("menu-productos").style.display = "block";
+        }
+
+        function agregarAlTicket(producto) {
+            if (!tickets[mesaSeleccionada]) {
+                tickets[mesaSeleccionada] = [];
+            }
+            tickets[mesaSeleccionada].push(producto);
+            actualizarTicket();
+        }
+
+        function actualizarTicket() {
+            let floatingTicketList = document.getElementById("floating-ticket-list");
+            floatingTicketList.innerHTML = ""; // Limpiar ticket flotante
+            let total = 0;
+
+            tickets[mesaSeleccionada].forEach(item => {
+                let listItem = document.createElement("li");
+                listItem.classList.add("ticket-item");
+                listItem.innerHTML = `${item.nombre} - ${item.precio}€ <button onclick="eliminarDelTicket('${item.nombre}')">X</button>`;
+                floatingTicketList.appendChild(listItem);
+                total += item.precio;
+            });
+
+            // Mostrar total en el ticket
+            let totalItem = document.createElement("li");
+            totalItem.classList.add("ticket-item");
+            totalItem.innerHTML = `Total: ${total}€`;
+            floatingTicketList.appendChild(totalItem);
+
+            document.getElementById("floating-ticket").style.display = "block"; // Mostrar ticket flotante
+        }
+
+        function eliminarDelTicket(nombre) {
+            tickets[mesaSeleccionada] = tickets[mesaSeleccionada].filter(prod => prod.nombre !== nombre);
+            actualizarTicket();
+        }
+
+        function cerrarTicket() {
+            document.getElementById("floating-ticket").style.display = "none";
+        }
+
+        function volverAMesas() {
+            document.getElementById("menu-pedidos").style.display = "none";
+            document.getElementById("menu-productos").style.display = "none";
+            document.getElementById("mesas").style.display = "grid";
+        }
+
+        function volverACategorias() {
+            document.getElementById("menu-productos").style.display = "none";
+            document.getElementById("menu-pedidos").style.display = "block";
+        }
+
+        function imprimirTicket() {
+            let contenidoTicket = `TICKET DE PEDIDO (Mesa ${mesaSeleccionada})\n`;
+            let total = 0;
+            tickets[mesaSeleccionada].forEach(item => {
+                contenidoTicket += `${item.nombre} - ${item.precio}€\n`;
+                total += item.precio;
+            });
+            contenidoTicket += `Total: ${total}€\n`;
+
+            let ventanaImpresion = window.open("", "Impresión", "width=600,height=400");
+            ventanaImpresion.document.write("<pre>" + contenidoTicket + "</pre>");
+            ventanaImpresion.document.close();
+            ventanaImpresion.print();
+        }
+    </script>
+</body>
+</html>
